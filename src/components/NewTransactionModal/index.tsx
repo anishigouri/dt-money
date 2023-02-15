@@ -1,5 +1,10 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import * as Dialog from '@radix-ui/react-dialog'
 import { ArrowCircleDown, ArrowCircleUp, X } from 'phosphor-react'
+import { Controller, useForm } from 'react-hook-form'
+import { useContextSelector } from 'use-context-selector'
+import * as z from 'zod'
+import { TransactionContext } from '../../contexts/TransactionsContext'
 import {
   CloseButton,
   Content,
@@ -7,9 +12,6 @@ import {
   TransactionType,
   TransactionTypeButton,
 } from './styles'
-import * as z from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
 
 const newTransactionFormSchema = z.object({
   description: z.string(),
@@ -20,18 +22,32 @@ const newTransactionFormSchema = z.object({
 
 type NewTransactionFormInput = z.infer<typeof newTransactionFormSchema>
 
-export function NewTransactionModal() {
+interface INewTransactionModal {
+  setOpen: (open: boolean) => void
+}
+
+export function NewTransactionModal({ setOpen }: INewTransactionModal) {
   const {
     control,
     register,
     handleSubmit,
+    reset,
     formState: { isSubmitting },
   } = useForm<NewTransactionFormInput>({
     resolver: zodResolver(newTransactionFormSchema),
   })
 
-  function handleCreateNewTransaction(data: NewTransactionFormInput) {
-    console.log(data)
+  const createTransaction = useContextSelector(
+    TransactionContext,
+    (context) => {
+      return context.createTransaction
+    },
+  )
+
+  async function handleCreateNewTransaction(data: NewTransactionFormInput) {
+    await createTransaction(data)
+    reset()
+    setOpen(false)
   }
 
   return (
@@ -39,7 +55,7 @@ export function NewTransactionModal() {
       <Overlay />
       <Content>
         <Dialog.Title>Nova Transação</Dialog.Title>
-        <CloseButton>
+        <CloseButton onClick={() => setOpen(false)}>
           <X />
         </CloseButton>
         <form onSubmit={handleSubmit(handleCreateNewTransaction)}>
